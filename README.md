@@ -1,13 +1,5 @@
 # TwitchAnalysis
 
-## 信心擊潰
-這次繳交檔案非下禮拜報告的主要內容 , 由於今日報告的人都很棒 , 我認為自己並沒有完整的使用sklearn工具 , 所以再進行一個禮拜的努力
-
-下禮拜預定更新內容:
-1 . twitch整天時間數據爬取
-2 . 實況主開台數據
-3 . 實況主開台時間預測
-
 
 ## 選題目的
  主要是當初在看實況時 , 實況主表示每天打遊戲 , 打到都對遊戲失去樂情想不到要玩什麼遊戲了, 所以叫觀眾投票 , 投出的結果與觀看人數不成比例 , 原因為4000人進行投票 , 比如票數為 1000,3000,1000 , 遊戲的更換自然會先造成人潮流失 ,再來才會持續增加或減少 , 所以想讓實況主們能夠參考統計數據 , 有效的進行開台時間與人潮的最大效益 。
@@ -63,13 +55,76 @@ http://technews.tw/2018/03/01/langlive-2017-performances/
 ![](https://i.imgur.com/iwCRPwQ.png)
 （圖六）
 
+#### k-Means分群
+![](https://i.imgur.com/HKLlI1B.png)
+（圖八）
+![](https://i.imgur.com/9hWjDkT.png)
+（圖八）
+
+```python=
+# https://zhuanlan.zhihu.com/p/36499278     線性回歸做時間預測(未達成)
+
+from sklearn.cluster import KMeans
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+loan_data = pd.DataFrame(pd.read_csv('twitchdatare.csv',header=0))
+
+print(loan_data.head())
+
+loan_data.columns#= Index(['name', 'viewersre', 'rownumre'],dtype='object')
+
+plt.rc('font', family='STXihei', size=10)
+plt.scatter(loan_data['viewersre'],loan_data['channelsre'],50,color='blue',marker='+',linewidth=2,alpha=0.8)
+plt.xlabel('viewersre')
+plt.ylabel('channelsre')
+plt.xlim(0,1)
+plt.grid(color='#95a5a6',linestyle='--', linewidth=1,axis='both',alpha=0.4)
+# plt.show()
+
+loan = np.array(loan_data[['viewersre','channelsre']])
+#取樣
+
+clf=KMeans(n_clusters=3)
+#給中心數量
+clf=clf.fit(loan)
+#進行分群
+print( clf.predict([[0.8, 1]]) )
+#給順練好的模型一組數據判斷分群
+print(clf.cluster_centers_)
+#分為3群中心的值
+
+
+loan_data['label']=clf.labels_
+#新增欄位
+print(loan_data.head())
+
+loan_data0=loan_data.loc[loan_data["label"] == 0]
+loan_data1=loan_data.loc[loan_data["label"] == 1]
+loan_data2=loan_data.loc[loan_data["label"] == 2]
+#我的欄位label 所被分到的群給予變數
+
+plt.rc('font', family='STXihei', size=10)
+#字的樣式
+plt.scatter(loan_data0['viewersre'],loan_data0['channelsre'],50,color='#99CC01',marker='+',linewidth=2,alpha=0.8)
+#50=點大小 marker = 形式 linewidth = marker寬度 alpha = 透明度
+plt.scatter(loan_data1['viewersre'],loan_data1['channelsre'],50,color='#FE0000',marker='*',linewidth=2,alpha=0.8)
+plt.scatter(loan_data2['viewersre'],loan_data2['channelsre'],50,color='#0000FE',marker='x',linewidth=2,alpha=0.8)
+plt.xlabel('viewersre')
+plt.ylabel('channelsre')
+plt.xlim(0,1)
+# x為0-1
+plt.grid(color='#95a5a6',linestyle='--', linewidth=1,axis='both',alpha=0.4)
+# 格線axis= 顯示x或y
+plt.show()
+```
+
+
 
 ## 結論
-以上數據可以製作成網頁或是APP並且每小時爬取直播平台的數據進行呈現 , 可以讓實況主或是需要的人發現各個遊戲類群的人數多寡 、每日的人潮區間 , 不需要浪費多餘的時間進行實況。
+以上數據確實發現某些類群遊戲接連幾年都是排行前三與頻道數成正比 , 之後會加入幾個實況主的開台時間進行時間預測與人數巔峰的數據呈現 , 可以製作成網頁或是APP並且每小時爬取直播平台的數據進行呈現 , 可以讓實況主或是需要的人發現各個遊戲類群的人數多寡 、每日的人潮區間 , 不需要浪費多餘的時間進行實況。
 
-
-## 檢討
-選擇題目時需要先事先查看資料是否可以拿取完整 , 才不會做到最後時發現資料無法進行有效的預測與正常的資料分群 , 還有事情不能拖到最後幾天才做 , 不然報告的等級會脫離班上平均值。
 
 
 
