@@ -125,7 +125,107 @@ plt.show()
 ## 結論
 以上數據確實發現某些類群遊戲接連幾年都是排行前三與頻道數成正比 , 之後會加入幾個實況主的開台時間進行時間預測與人數巔峰的數據呈現 , 可以製作成網頁或是APP並且每小時爬取直播平台的數據進行呈現 , 可以讓實況主或是需要的人發現各個遊戲類群的人數多寡 、每日的人潮區間 , 不需要浪費多餘的時間進行實況。
 
+# Twitch - 關聯
 
+## 選題目的
+由於期中是做 人數和類群分析 , 本來是想做實況主的開台時間預測 , 但很難做不出來 , 所以選擇使用apriori 做觀眾對 實況主 的關聯性
+
+## 資料來源
+Twitch api:
+https://dev.twitch.tv/docs/api/reference/#get-extension-analytics
+
+官方提供的API 主要抓取==遊戲類群== 觀看總人數 ==前10名== , ==類群==裡前==100位實況主== , ==實況主==聊天室內==所有觀眾==
+
+![](https://i.imgur.com/EVPUyF4.png)
+因為資料量很大 , 電腦load檔案就會有memory err的問題 , 所以切成==一個星期10個group==
+
+## 遇到的狀況
+1. load檔案的時候Memory err
+![](https://i.imgur.com/KBX8jot.png)
+2. Data 型態不同
+![](https://i.imgur.com/LnvN32M.png)
+3. Dataframe is to big
+在借用學長的電腦跑得時候出現的 , ram32G
+
+## 實做步驟
+1.
+目的：解決資料一次讀進來時 , 記憶體不足
+```python=
+df1 = pd.read_csv('./10_grand_theft_auto_v/twitch_0601_0607.txt', sep=",", chunksize = 100000, header=None, names=["mid", "viewer", "group", "master"])
+# # print(df1)
+df2 = pd.read_csv('./10_grand_theft_auto_v/twitch_0608_0614.txt', sep=",", chunksize = 100000, header=None, names=["mid", "viewer", "group", "master"])
+# print(df2)
+df = pd.DataFrame(columns=[]) 
+```
+2. 
+合併使用chunksize ,生成的迭代器 並重新給index
+```python=
+for df1 in df1:
+#     print(df1)
+#     print(type(df1))
+    df3 = pd.concat([df,df1],ignore_index=True)
+for df2 in df2: 
+#     print(df2)
+#     print(type(df2))
+    df4 = pd.concat([df,df2],ignore_index=True) 
+```
+3. 
+2個星期合併
+```python=
+res = pd.concat([df3, df4],  axis=0)
+res['count'] = 1
+```
+4. 
+```python=
+new = res.pivot_table(index = 'viewer', columns = 'master', values = 'count', fill_value = 0, aggfunc = np.sum)
+
+```
+5. 
+```python=
+def encode_units(x):
+    if x <= 0:
+        return 0
+    if x>= 1:
+        return 1
+
+new_sets = new.applymap(encode_units)
+print(type(new_sets))
+
+```
+6.
+```python=
+frequent_itemsets = apriori(new_sets, min_support = 0.01, use_colnames = True)
+```
+7.
+```python=
+rules = association_rules(frequent_itemsets, metric="confidence", min_threshold = 0.1)
+```
+## 解釋結果
+![](https://i.imgur.com/59RohPC.png)
+
+#### 找尋可以解釋的關聯性
+1 . overpow - LOL
+![](https://i.imgur.com/cEJecf8.png)
+
+2 . buli - GTA5
+![](https://i.imgur.com/yhe9GJ0.png)
+
+##### 這時候我才想到我使用的資料是2018/06月的
+
+到這個網站找歷史資料
+1. https://sullygnome.com/channel/overpow/2018june/streams
+2. https://sullygnome.com/channel/buli/2018june/streams
+
+最後覺得有點不知如何是好 , 只好直接google ==Overpow Buli bonkol twitch==
+
+找到了這個!!
+https://www.youtube.com/watch?reload=9&v=LRap6v6ETU8&list=PLMsFl8i4WNRcmYAXrdkv3O4RJedYvDLzY&index=4&fbclid=IwAR0JYVnknp5SYIUg1nM8PTfh0Pm9gEA4fGxn5gEMQk-zAWzjbbN3a-KHAC0
+
+所以在我使用的資料裡面 , 可以發現觀眾看的實況主們==Overpow== ==Buli== ==bonkol== 是比較多人同時或都會觀看的
+![](https://i.imgur.com/kmTRoiJ.png)
+
+## 結論
+在觀看youtube剪輯的時候發現這幾位實況主原來 在6月份的時候是一起玩遊戲的 , 所以觀眾在看其中一個實況主的時候 , 也會好奇另一個在同一個伺服器裡的實況主在做什麼, 所以才會出現這3位實況主有那麼強的關聯性
 
 
 
